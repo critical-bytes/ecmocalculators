@@ -29,10 +29,10 @@ Limiti: in VA-ECMO il VTI LVOT misura solo l'eiezione nativa, il flusso di circu
 
 ## Ricircolo in VV-ECMO
 
-- R = (SpreO₂ − SvO₂)/(SpostO₂ − SvO₂), frazione 0–1; Qrec = Qb·R; Qeff = Qb·(1 − R).
-- Notazione come Badulak 2024 (ELSO): ML/NL, pre/post-ML, FdO₂. SvO₂ qui è il sangue venoso prima della miscela con il rientro, non il prelievo in arteria polmonare.
-- Fonte di SvO₂ dichiarata (EGA venoso centrale pre-avvio, sweep spento con sensore pre-ML, CVC a flusso attivo, altro) con la direzione attesa dell'errore su R.
-- Sensibilità di R a SvO₂ ± 5 punti; V̇O₂ML con Hb (e O₂ disciolto se si inseriscono le P); Qb/GC e Qeff/GC se GC è noto; criterio di Locker 2003.
+- R = (SpreO₂ − ScvO₂)/(SpostO₂ − ScvO₂), frazione 0–1; Qrec = Qb·R; Qeff = Qb·(1 − R).
+- Notazione come Badulak 2024 (ELSO): ML/NL, pre/post-ML, FdO₂. ScvO₂ (CVC in VCS o giunzione cavo-atriale) è il surrogato del sangue venoso prima della miscela con il rientro; SvO₂ è la saturazione venosa generica, S v̄O₂ il prelievo in arteria polmonare.
+- Fonte di ScvO₂ dichiarata (EGA venoso centrale pre-avvio, sweep spento con sensore pre-ML, CVC a flusso attivo, altro) con la direzione attesa dell'errore su R.
+- Sensibilità di R a ScvO₂ ± 5 punti; V̇O₂ML con Hb (e O₂ disciolto se si inseriscono le P); Qb/GC e Qeff/GC se GC è noto; criterio di Locker 2003.
 - Riepilogo copiabile.
 
-Limiti: il metodo dipende interamente da SvO₂; le saturazioni ignorano l'O₂ disciolto post-ML e tendono a sovrastimare R rispetto ai contenuti. La soglia del 10% viene da misure con diluizione a ultrasuoni.
+Limiti: il metodo dipende interamente da ScvO₂; le saturazioni ignorano l'O₂ disciolto post-ML e tendono a sovrastimare R rispetto ai contenuti. La soglia del 10% viene da misure con diluizione a ultrasuoni.

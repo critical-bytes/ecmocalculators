@@ -7,7 +7,7 @@
 <style>
 /* VOICE: clinico, asciutto, strumento da letto del paziente
    IDEA: la console ECMO: R grande sullo schermo, sotto Qb diviso in efficace e ricircolato
-   PICTURE: curva R in funzione di SvO2, perché è SvO2 il dato debole
+   PICTURE: curva R in funzione di ScvO2, perché è ScvO2 il dato debole
    LAYOUT: schermo a sinistra, comandi a destra; sotto calcoli, glossario e note; si impila sotto 760px */
 :root{color-scheme:light dark;--bg:light-dark(#e9eaec,#141517);--card:light-dark(#fff,#1c1e21);--ink:light-dark(#121315,#eceef0);--mute:light-dark(#585d65,#9aa0a8);--line:light-dark(#d2d4d8,#2d3034);--acc:#ff4f00;--scr:#07090b;--ok:light-dark(#1d7a4c,#5cc98f);--warn:light-dark(#b3261e,#ff8a7e);--eff:#3ea6ff;--rec:#ff4f00}
 *{box-sizing:border-box;min-width:0}
@@ -87,7 +87,7 @@ h2:first-child{margin-top:0}
 <div class="band">
   <p class="back"><a href="index.html">← Calcolatori ECMO</a></p>
   <h1>Ricircolo in VV-ECMO</h1>
-  <p class="sub">Metodo a saturazioni: <b>R = (S<sub>pre</sub>O<sub>2</sub> − SvO<sub>2</sub>) / (S<sub>post</sub>O<sub>2</sub> − SvO<sub>2</sub>)</b> · <b>Q<sub>eff</sub> = Q<sub>b</sub> × (1 − R)</b></p>
+  <p class="sub">Metodo a saturazioni: <b>R = (S<sub>pre</sub>O<sub>2</sub> − ScvO<sub>2</sub>) / (S<sub>post</sub>O<sub>2</sub> − ScvO<sub>2</sub>)</b> · <b>Q<sub>eff</sub> = Q<sub>b</sub> × (1 − R)</b></p>
 
   <div class="grid">
     <section class="scr" aria-label="Risultato">
@@ -102,13 +102,13 @@ h2:first-child{margin-top:0}
         <div class="l"><span>Q<sub>eff</sub> <b id="lE">–</b></span><span>Q<sub>b</sub> <b id="lB">–</b></span><span>Q<sub>rec</sub> <b id="lR">–</b></span></div>
       </div>
       <div class="fig"><svg id="crv" role="img" aria-label="Curva della frazione di ricircolo in funzione della saturazione venosa"></svg></div>
-      <p class="cap" id="cap">R in funzione di SvO<sub>2</sub>, a S<sub>pre</sub>O<sub>2</sub> e S<sub>post</sub>O<sub>2</sub> fissi. Banda = SvO<sub>2</sub> ± 5 punti.</p>
+      <p class="cap" id="cap">R in funzione di ScvO<sub>2</sub>, a S<sub>pre</sub>O<sub>2</sub> e S<sub>post</sub>O<sub>2</sub> fissi. Banda = ScvO<sub>2</sub> ± 5 punti.</p>
     </section>
 
     <section class="ctl" aria-label="Parametri">
       <div id="rows"></div>
       <div class="row">
-        <div class="rh"><label for="src">Fonte di SvO<sub>2</sub></label></div>
+        <div class="rh"><label for="src">Fonte di ScvO<sub>2</sub></label></div>
         <select id="src"></select>
         <p class="hint" id="srcNote"></p>
         <input type="text" class="txt" id="srcTxt" placeholder="Dettaglio (es. EGA VCS alle 14:30, sensore pre-ML dopo 5 min)" aria-label="Dettaglio della fonte">
@@ -145,7 +145,7 @@ h2:first-child{margin-top:0}
       <tr><td>ML · NL</td><td>–</td><td>Membrane lung (ossigenatore) · native lung (polmone nativo), come in Badulak 2024.</td></tr>
       <tr><td>S<sub>pre</sub>O<sub>2</sub></td><td>%</td><td>Saturazione pre-ML: sangue in drenaggio, cioè sangue venoso del paziente più la quota ricircolata. Sensore della console sulla linea venosa o EGA pre-ML.</td></tr>
       <tr><td>S<sub>post</sub>O<sub>2</sub></td><td>%</td><td>Saturazione post-ML: sangue che rientra nel paziente. EGA post-ML.</td></tr>
-      <tr><td>SvO<sub>2</sub></td><td>%</td><td>Saturazione del sangue venoso che torna al cuore <em>prima</em> di mescolarsi con il rientro ECMO. Non è la S<sub>v̄</sub>O<sub>2</sub> di Badulak 2024, che indica il prelievo in arteria polmonare: in VV quel sangue è già mescolato col rientro e non va usato qui.</td></tr>
+      <tr><td>ScvO<sub>2</sub></td><td>%</td><td>Saturazione venosa centrale, da CVC con punta in VCS o alla giunzione cavo-atriale. Nella formula sta per il sangue venoso che torna al cuore <em>prima</em> di mescolarsi con il rientro ECMO, di cui è un surrogato. SvO<sub>2</sub> è la saturazione venosa generica; S<sub>v̄</sub>O<sub>2</sub> (Badulak 2024) è il prelievo in arteria polmonare, che in VV è già mescolato col rientro e qui non va usato.</td></tr>
       <tr><td>P<sub>pre</sub>O<sub>2</sub> · P<sub>post</sub>O<sub>2</sub></td><td>mmHg</td><td>Pressioni parziali di O<sub>2</sub> pre-ML e post-ML.</td></tr>
       <tr><td>F<sub>d</sub>O<sub>2</sub></td><td>0–1</td><td>Frazione di O<sub>2</sub> nel gas di sweep inviato al ML (Badulak 2024; non F<sub>s</sub>O<sub>2</sub>).</td></tr>
       <tr><td>Hb</td><td>g/dL</td><td>Emoglobina, serve solo per V̇O<sub>2ML</sub>.</td></tr>
@@ -155,7 +155,7 @@ h2:first-child{margin-top:0}
 
   <h2>Note e limiti</h2>
   <ul class="notes">
-    <li>Il metodo regge solo con SvO<sub>2</sub> attendibile: la curva sullo schermo mostra quanto cambia R se SvO<sub>2</sub> sbaglia di pochi punti. Abbassare SvO<sub>2</sub> fa salire R, alzarla lo fa scendere.</li>
+    <li>Il metodo regge solo con ScvO<sub>2</sub> attendibile: la curva sullo schermo mostra quanto cambia R se ScvO<sub>2</sub> sbaglia di pochi punti. Abbassare ScvO<sub>2</sub> fa salire R, alzarla lo fa scendere.</li>
     <li>Le saturazioni ignorano l'O<sub>2</sub> disciolto. Post-ML, con P<sub>post</sub>O<sub>2</sub> intorno a 400–500 mmHg, vale ~1,2–1,5 mL/dL: la formula a saturazioni tende a sovrastimare R rispetto a quella a contenuti (Xie 2016: i contenuti sono forse più accurati, evidenza limitata).</li>
     <li>R ≥ 10% è la soglia di ricircolo "clinicamente rilevante" usata da Behnel 2026 con diluizione a ultrasuoni; non è un cut-off validato per il metodo a saturazioni.</li>
     <li>Q<sub>b</sub>/GC > 60% si associava sempre a SaO<sub>2</sub> > 90% in VV femoro-giugulare (Schmidt 2013). Il dato è su Q<sub>b</sub> totale, non su Q<sub>eff</sub>.</li>
@@ -172,14 +172,14 @@ const P=[
   {id:'qb',lab:'Q<sub>b</sub>',u:'L/min',min:0.5,max:8,step:0.1,dec:1},
   {id:'spre',lab:'S<sub>pre</sub>O<sub>2</sub>',u:'%',min:30,max:100,step:0.5,dec:1},
   {id:'spost',lab:'S<sub>post</sub>O<sub>2</sub>',u:'%',min:60,max:100,step:0.5,dec:1},
-  {id:'sv',lab:'SvO<sub>2</sub>',u:'%',min:20,max:95,step:0.5,dec:1},
+  {id:'sv',lab:'ScvO<sub>2</sub>',u:'%',min:20,max:95,step:0.5,dec:1},
   {id:'hb',lab:'Hb',u:'g/dL',min:5,max:18,step:0.1,dec:1},
   {id:'gc',lab:'GC',u:'L/min',min:1,max:15,step:0.1,dec:1,opt:true}
 ];
 const SRC={
-  pre:{t:'EGA venoso centrale prima dell\'avvio del flusso',n:'Dato reale, ma fotografa il paziente prima dell\'ECMO, più ipossiemico: SvO<sub>2</sub> tende a essere più bassa di quella attuale e R viene sovrastimato. Un prelievo in VCS non rappresenta il sangue della VCI.',b:'R tende a essere sovrastimato'},
-  sweep:{t:'Sweep spento, sensore pre-ML della console dopo alcuni minuti',n:'Solo se clinicamente sicuro. A sweep spento S<sub>pre</sub>O<sub>2</sub> = SvO<sub>2</sub>, perché il sangue che ricircola non è ossigenato. Durante la manovra però SaO<sub>2</sub> scende e SvO<sub>2</sub> con lei: il valore letto è più basso di quello a sweep acceso e R viene sovrastimato. Leggere al plateau.',b:'R tende a essere sovrastimato'},
-  cvc:{t:'CVC con flusso ECMO attivo',n:'Il prelievo è contaminato dal rientro: SvO<sub>2</sub> risulta più alta del vero e R viene sottostimato. Negli agnelli la stima da CVC in VCI si discostava di ~16 punti dal riferimento (van Heijst 2001).',b:'R tende a essere sottostimato'},
+  pre:{t:'EGA venoso centrale prima dell\'avvio del flusso',n:'Dato reale, ma fotografa il paziente prima dell\'ECMO, più ipossiemico: ScvO<sub>2</sub> tende a essere più bassa di quella attuale e R viene sovrastimato. Un prelievo in VCS non rappresenta il sangue della VCI.',b:'R tende a essere sovrastimato'},
+  sweep:{t:'Sweep spento, sensore pre-ML della console dopo alcuni minuti',n:'Solo se clinicamente sicuro. A sweep spento il sangue che ricircola non è ossigenato, quindi S<sub>pre</sub>O<sub>2</sub> coincide con la saturazione venosa del territorio drenato: a rigore non è una ScvO<sub>2</sub>, ma la si usa al suo posto. Durante la manovra però SaO<sub>2</sub> scende e ScvO<sub>2</sub> con lei: il valore letto è più basso di quello a sweep acceso e R viene sovrastimato. Leggere al plateau.',b:'R tende a essere sovrastimato'},
+  cvc:{t:'CVC con flusso ECMO attivo',n:'Il prelievo è contaminato dal rientro: ScvO<sub>2</sub> risulta più alta del vero e R viene sottostimato. Negli agnelli la stima da CVC in VCI si discostava di ~16 punti dal riferimento (van Heijst 2001).',b:'R tende a essere sottostimato'},
   oth:{t:'Altro (specificare nel dettaglio)',n:'Indica nel dettaglio da dove viene il valore.',b:'direzione dell\'errore non nota'}
 };
 const st=Object.assign({},DEF);
@@ -227,11 +227,11 @@ function calc(){
   const {qb,spre,spost,sv,hb,gc}=st;
   const errs=[];
   if(spost<=spre)errs.push('S<sub>post</sub>O<sub>2</sub> deve essere maggiore di S<sub>pre</sub>O<sub>2</sub>: controllare ML, F<sub>d</sub>O<sub>2</sub> e sweep.');
-  if(spost<=sv)errs.push('S<sub>post</sub>O<sub>2</sub> deve essere maggiore di SvO<sub>2</sub>.');
+  if(spost<=sv)errs.push('S<sub>post</sub>O<sub>2</sub> deve essere maggiore di ScvO<sub>2</sub>.');
   let R=NaN;
   if(!errs.length){
     R=Rf(spre,spost,sv);
-    if(spre<sv){errs.push('S<sub>pre</sub>O<sub>2</sub> &lt; SvO<sub>2</sub>: R negativo è impossibile. SvO<sub>2</sub> probabilmente sovrastimata (contaminata dal rientro?). R posto a 0.');R=0}
+    if(spre<sv){errs.push('S<sub>pre</sub>O<sub>2</sub> &lt; ScvO<sub>2</sub>: R negativo è impossibile. ScvO<sub>2</sub> probabilmente sovrastimata (contaminata dal rientro?). R posto a 0.');R=0}
   }
   $('err').innerHTML=errs.join('<br>');
   const qr=qb*R, qe=qb*(1-R);
@@ -255,8 +255,8 @@ function calc(){
     lock=ok?'<span class="okc">criterio soddisfatto: ricircolo clinicamente rilevante escluso</span>':`<span class="lo">criterio non soddisfatto</span>${pp>54?' (P<sub>pre</sub>O<sub>2</sub> &gt; 54 mmHg)':''}`}
   const cls=(v,lo,hi)=>v<lo?'lo':v>hi?'':'okc';
   const rows=[
-    ['Frazione di ricircolo (R)',`<span class="${relevant?'lo':'okc'}">${fmt(R*100,1)}%</span><span class="f">${fmt(R,3)}</span>`,'(S<sub>pre</sub>O<sub>2</sub> − SvO<sub>2</sub>) / (S<sub>post</sub>O<sub>2</sub> − SvO<sub>2</sub>); ≥ 10% rilevante (Behnel 2026)'],
-    ['R con SvO<sub>2</sub> ± 5 punti',`${fmt(lo*100,0)}–${fmt(hi*100,0)}%`,`SvO<sub>2</sub> ${fmt(Math.min(sv+5,spost-0.5),1)}% → ${fmt(Math.max(sv-5,0),1)}%; ~${fmt(dR,1)} punti di R per punto di SvO<sub>2</sub>`],
+    ['Frazione di ricircolo (R)',`<span class="${relevant?'lo':'okc'}">${fmt(R*100,1)}%</span><span class="f">${fmt(R,3)}</span>`,'(S<sub>pre</sub>O<sub>2</sub> − ScvO<sub>2</sub>) / (S<sub>post</sub>O<sub>2</sub> − ScvO<sub>2</sub>); ≥ 10% rilevante (Behnel 2026)'],
+    ['R con ScvO<sub>2</sub> ± 5 punti',`${fmt(lo*100,0)}–${fmt(hi*100,0)}%`,`ScvO<sub>2</sub> ${fmt(Math.min(sv+5,spost-0.5),1)}% → ${fmt(Math.max(sv-5,0),1)}%; ~${fmt(dR,1)} punti di R per punto di ScvO<sub>2</sub>`],
     ['Flusso ricircolato (Q<sub>rec</sub>)',`${fmt(qr,2)} L/min`,'Q<sub>b</sub> × R'],
     ['Flusso efficace (Q<sub>eff</sub>)',`${fmt(qe,2)} L/min`,'Q<sub>b</sub> × (1 − R)'],
     ['O<sub>2</sub> trasferito dal ML (V̇O<sub>2ML</sub>)',`${fmt(vo2,0)} mL/min`,hasP?'saturazione + O<sub>2</sub> disciolto':'solo quota legata a Hb: inserire le P per il disciolto']
@@ -266,14 +266,14 @@ function calc(){
     rows.push(['Q<sub>eff</sub>/GC',`${fmt(qe/gc*100,0)}%`,'quota di GC che passa davvero dal ML']);
   }
   rows.push(['Locker: P<sub>pre</sub>O<sub>2</sub>/P<sub>post</sub>O<sub>2</sub>',lockS,lock]);
-  rows.push(['Fonte di SvO<sub>2</sub>',SRC[st.src].b,SRC[st.src].t+(st.srcTxt?` · ${st.srcTxt.replace(/[<>&]/g,'')}`:'')]);
+  rows.push(['Fonte di ScvO<sub>2</sub>',SRC[st.src].b,SRC[st.src].t+(st.srcTxt?` · ${st.srcTxt.replace(/[<>&]/g,'')}`:'')]);
   $('tb').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td class="ref">${r[2]}</td></tr>`).join('');
 
   const L=[
     `Ricircolo VV-ECMO (metodo a saturazioni)`,
-    `Qb ${fmt(qb,1)} L/min · SpreO2 ${fmt(spre,1)}% · SpostO2 ${fmt(spost,1)}% · SvO2 ${fmt(sv,1)}%`,
-    `Fonte SvO2: ${SRC[st.src].t}${st.srcTxt?' ('+st.srcTxt+')':''}; ${SRC[st.src].b}`,
-    `R ${fmt(R*100,1)}% (SvO2 ±5: ${fmt(lo*100,0)}–${fmt(hi*100,0)}%)`,
+    `Qb ${fmt(qb,1)} L/min · SpreO2 ${fmt(spre,1)}% · SpostO2 ${fmt(spost,1)}% · ScvO2 ${fmt(sv,1)}%`,
+    `Fonte ScvO2: ${SRC[st.src].t}${st.srcTxt?' ('+st.srcTxt+')':''}; ${SRC[st.src].b}`,
+    `R ${fmt(R*100,1)}% (ScvO2 ±5: ${fmt(lo*100,0)}–${fmt(hi*100,0)}%)`,
     `Qeff ${fmt(qe,2)} L/min · Qrec ${fmt(qr,2)} L/min`,
     `VO2ML ${fmt(vo2,0)} mL/min (Hb ${fmt(hb,1)} g/dL${hasP?`, PpreO2 ${fmt(pp,0)}, PpostO2 ${fmt(po,0)} mmHg`:''})`
   ];
@@ -295,7 +295,7 @@ function draw(){
   g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(0.1)}" y2="${y(0.1)}" stroke="#8a5a00" stroke-dasharray="4 3"/><text x="${W-mr}" y="${y(0.1)-4}" fill="#ffd38a" font-size="11" text-anchor="end">10%</text>`;
   const step=Math.ceil((x1-x0)/5/5)*5||5;
   for(let v=x0;v<=x1+1e-6;v+=step)g+=`<text x="${x(v)}" y="${B+16}" fill="#7d868e" font-size="11" text-anchor="middle">${v}</text>`;
-  g+=`<text x="${W-mr}" y="${B+16}" fill="#7d868e" font-size="11" text-anchor="end">SvO₂ %</text>`;
+  g+=`<text x="${W-mr}" y="${B+16}" fill="#7d868e" font-size="11" text-anchor="end">ScvO₂ %</text>`;
   if(spost>spre&&spost>sv){
     const a=Math.max(x0,sv-5),b=Math.min(x1,sv+5);
     g+=`<rect x="${x(a)}" y="${T}" width="${Math.max(0,x(b)-x(a))}" height="${B-T}" fill="rgba(255,79,0,.12)"/>`;
