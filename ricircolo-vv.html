@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ricircolo in VV-ECMO</title>
+<style>
+/* VOICE: clinico, asciutto, strumento da letto del paziente
+   IDEA: la console ECMO: R grande sullo schermo, sotto Qb diviso in efficace e ricircolato
+   PICTURE: curva R in funzione di SvO2, perché è SvO2 il dato debole
+   LAYOUT: schermo a sinistra, comandi a destra; sotto calcoli, glossario e note; si impila sotto 760px */
+:root{color-scheme:light dark;--bg:light-dark(#e9eaec,#141517);--card:light-dark(#fff,#1c1e21);--ink:light-dark(#121315,#eceef0);--mute:light-dark(#585d65,#9aa0a8);--line:light-dark(#d2d4d8,#2d3034);--acc:#ff4f00;--scr:#07090b;--ok:light-dark(#1d7a4c,#5cc98f);--warn:light-dark(#b3261e,#ff8a7e);--eff:#3ea6ff;--rec:#ff4f00}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:clip}
+a{color:var(--acc)}
+.band{padding:clamp(20px,3.5vw,48px) max(4vw,16px);max-width:1240px;margin:0 auto}
+.back{font-size:14px;margin:0 0 10px}
+h1{font-size:clamp(28px,4vw,42px);line-height:1.05;font-weight:600;margin:0 0 8px;text-wrap:balance}
+.sub{color:var(--mute);margin:0;font-size:15px}
+.sub b{color:var(--ink);font-weight:500}
+.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;margin-top:22px}
+@media(max-width:760px){.grid{grid-template-columns:minmax(0,1fr)}}
+.scr{background:var(--scr);color:#f2f4f5;border-radius:14px;padding:18px 18px 10px;display:flex;flex-direction:column;box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 10px 30px rgba(0,0,0,.18)}
+.big{display:flex;flex-wrap:wrap;gap:6px 28px;align-items:flex-end}
+.big .k{font-size:13px;color:#9aa3ab}
+.big .v{font-size:clamp(40px,7vw,64px);font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:#fff}
+.big .v small{font-size:16px;font-weight:400;color:#9aa3ab;margin-left:4px}
+.big .s{font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}
+.big .s small{font-size:14px;color:#9aa3ab;font-weight:400;margin-left:3px}
+.flag{display:inline-block;font-size:13px;padding:1px 8px;border-radius:99px;margin-left:6px;vertical-align:middle;font-weight:500}
+.flag.lo{background:#5a1b16;color:#ffb3aa}.flag.ok{background:#15382a;color:#8fe0b3}.flag.hi{background:#4a3410;color:#ffd38a}
+.err{color:#ffb3aa;font-size:14px;margin:10px 0 0;min-height:0}
+.bar{margin-top:16px}
+.bar .t{display:flex;height:30px;border-radius:8px;overflow:hidden;background:#1d252b}
+.bar .t div{display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#07090b;white-space:nowrap;overflow:hidden;transition:width .15s}
+.bar .l{display:flex;justify-content:space-between;font-size:13px;color:#9aa3ab;margin-top:4px;gap:10px}
+.bar .l span b{font-weight:600;color:#f2f4f5}
+.fig{position:relative;min-height:220px;flex:1;margin-top:12px}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.cap{font-size:13px;color:#7d868e;margin:6px 0 0}
+.ctl{background:var(--card);border-radius:14px;padding:18px;border:1px solid var(--line)}
+.row{padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.rh{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.rh label{font-weight:500;font-size:15px}
+.rh .u{color:var(--mute);font-size:14px;white-space:nowrap}
+.num{display:flex;align-items:center;gap:6px}
+.num input{width:5.2em;font:inherit;font-size:16px;text-align:right;font-variant-numeric:tabular-nums;padding:8px 10px;min-height:40px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.num input:disabled{opacity:.45}
+.hint{font-size:13px;color:var(--mute);margin:2px 0 0}
+select,.txt{width:100%;font:inherit;font-size:15px;padding:8px 10px;min-height:40px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin-top:6px}
+.chk{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--mute);cursor:pointer}
+.chk input{accent-color:var(--acc);width:18px;height:18px}
+.mini{font:inherit;font-size:13px;min-height:36px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;white-space:nowrap}
+/* il cursore risponde solo trascinando il pallino: scorrere la pagina sopra la traccia non cambia nulla */
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;margin:0;background:transparent;pointer-events:none;touch-action:pan-y}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-12px;border-radius:50%;background:var(--acc);border:3px solid var(--card);box-shadow:0 1px 4px rgba(0,0,0,.35);pointer-events:auto;cursor:grab;touch-action:pan-y}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--line)}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--acc);border:3px solid var(--card);pointer-events:auto;cursor:grab}
+input[type=range]:disabled::-webkit-slider-thumb{background:var(--line)}
+input[type=range]:disabled::-moz-range-thumb{background:var(--line)}
+input[type=range]:focus-visible{outline:none}
+input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--acc);outline-offset:2px}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.foot{display:flex;justify-content:flex-end;margin-top:8px}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:13px;color:var(--mute);font-weight:500}
+tr:last-child td{border-bottom:0}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+td .f{display:block;font-size:13px;color:var(--mute);font-weight:400}
+.ref{color:var(--mute);font-size:14px}
+.lo{color:var(--warn)}.okc{color:var(--ok)}
+h2{font-size:20px;margin:28px 0 12px;font-weight:600}
+h2:first-child{margin-top:0}
+.notes{color:var(--mute);font-size:14px;margin:14px 0 0;padding-left:18px}
+.notes li{margin:4px 0}
+.sum{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
+.sum pre{flex:1;margin:0;white-space:pre-wrap;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+@media(max-width:600px){table{font-size:14px}.stack thead{display:none}.stack tr{display:grid;padding-block:8px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 14px;padding-inline-start:9em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:8.5em;margin-inline-start:-9em;color:var(--mute);font-weight:400}.stack td:empty{display:none}.sum{flex-direction:column}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<div class="band">
+  <p class="back"><a href="index.html">← Calcolatori ECMO</a></p>
+  <h1>Ricircolo in VV-ECMO</h1>
+  <p class="sub">Metodo a saturazioni: <b>R = (S<sub>pre</sub>O<sub>2</sub> − SvO<sub>2</sub>) / (S<sub>post</sub>O<sub>2</sub> − SvO<sub>2</sub>)</b> · <b>Q<sub>eff</sub> = Q<sub>b</sub> × (1 − R)</b></p>
+
+  <div class="grid">
+    <section class="scr" aria-label="Risultato">
+      <div class="big">
+        <div><div class="k">Frazione di ricircolo (R)</div><div class="v" id="oR">–<small>%</small></div></div>
+        <div><div class="k">Q<sub>eff</sub></div><div class="s" id="oQe">–</div></div>
+        <div><div class="k">Q<sub>rec</sub></div><div class="s" id="oQr">–</div></div>
+      </div>
+      <p class="err" id="err"></p>
+      <div class="bar" aria-hidden="true">
+        <div class="t"><div id="bE" style="background:var(--eff)"></div><div id="bR" style="background:var(--rec)"></div></div>
+        <div class="l"><span>Q<sub>eff</sub> <b id="lE">–</b></span><span>Q<sub>b</sub> <b id="lB">–</b></span><span>Q<sub>rec</sub> <b id="lR">–</b></span></div>
+      </div>
+      <div class="fig"><svg id="crv" role="img" aria-label="Curva della frazione di ricircolo in funzione della saturazione venosa"></svg></div>
+      <p class="cap" id="cap">R in funzione di SvO<sub>2</sub>, a S<sub>pre</sub>O<sub>2</sub> e S<sub>post</sub>O<sub>2</sub> fissi. Banda = SvO<sub>2</sub> ± 5 punti.</p>
+    </section>
+
+    <section class="ctl" aria-label="Parametri">
+      <div id="rows"></div>
+      <div class="row">
+        <div class="rh"><label for="src">Fonte di SvO<sub>2</sub></label></div>
+        <select id="src"></select>
+        <p class="hint" id="srcNote"></p>
+        <input type="text" class="txt" id="srcTxt" placeholder="Dettaglio (es. EGA VCS alle 14:30, sensore pre-ML dopo 5 min)" aria-label="Dettaglio della fonte">
+      </div>
+      <div class="row">
+        <div class="rh"><label for="n_ppre">P<sub>pre</sub>O<sub>2</sub> · P<sub>post</sub>O<sub>2</sub></label>
+          <span class="num"><input type="number" id="n_ppre" min="5" max="700" step="1" inputmode="decimal" placeholder="pre"><input type="number" id="n_ppost" min="5" max="700" step="1" inputmode="decimal" placeholder="post"><span class="u">mmHg</span></span></div>
+        <p class="hint">Facoltative, da EGA pre-ML e post-ML: controllo di Locker e O<sub>2</sub> disciolto nel trasferimento.</p>
+      </div>
+      <div class="foot"><button type="button" class="mini" id="reset">Ripristina valori iniziali</button></div>
+    </section>
+  </div>
+</div>
+
+<div class="band" style="padding-top:0">
+  <h2>Calcoli</h2>
+  <table class="stack">
+    <thead><tr><th>Parametro</th><th style="text-align:right">Valore</th><th>Riferimento / nota</th></tr></thead>
+    <tbody id="tb"></tbody>
+  </table>
+
+  <h2>Riepilogo</h2>
+  <div class="sum"><pre id="sum"></pre><button type="button" class="mini" id="copy">Copia</button></div>
+
+  <h2>Definizioni</h2>
+  <table class="stack">
+    <thead><tr><th>Simbolo</th><th>Unità</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td>Q<sub>b</sub></td><td>L/min</td><td>Flusso di sangue del circuito, letto sulla console (Q<sub>EC</sub> in Fisser 2022).</td></tr>
+      <tr><td>R</td><td>adimensionale, 0–1 (mostrata in %)</td><td>Frazione di ricircolo: quota di Q<sub>b</sub> che, uscita dalla cannula di rientro, torna nella cannula di drenaggio senza passare dal circolo polmonare (R<sub>f</sub> in alcuni lavori).</td></tr>
+      <tr><td>Q<sub>rec</sub></td><td>L/min</td><td>Flusso ricircolato = Q<sub>b</sub> × R.</td></tr>
+      <tr><td>Q<sub>eff</sub></td><td>L/min</td><td>Flusso efficace = Q<sub>b</sub> × (1 − R) = Q<sub>b</sub> − Q<sub>rec</sub>: sangue ossigenato dal ML che arriva davvero all'arteria polmonare.</td></tr>
+      <tr><td>GC</td><td>L/min</td><td>Gittata cardiaca. In VV tutto il flusso passa dal cuore: la stima da VTI LVOT la misura intera.</td></tr>
+      <tr><td>ML · NL</td><td>–</td><td>Membrane lung (ossigenatore) · native lung (polmone nativo), come in Badulak 2024.</td></tr>
+      <tr><td>S<sub>pre</sub>O<sub>2</sub></td><td>%</td><td>Saturazione pre-ML: sangue in drenaggio, cioè sangue venoso del paziente più la quota ricircolata. Sensore della console sulla linea venosa o EGA pre-ML.</td></tr>
+      <tr><td>S<sub>post</sub>O<sub>2</sub></td><td>%</td><td>Saturazione post-ML: sangue che rientra nel paziente. EGA post-ML.</td></tr>
+      <tr><td>SvO<sub>2</sub></td><td>%</td><td>Saturazione del sangue venoso che torna al cuore <em>prima</em> di mescolarsi con il rientro ECMO. Non è la S<sub>v̄</sub>O<sub>2</sub> di Badulak 2024, che indica il prelievo in arteria polmonare: in VV quel sangue è già mescolato col rientro e non va usato qui.</td></tr>
+      <tr><td>P<sub>pre</sub>O<sub>2</sub> · P<sub>post</sub>O<sub>2</sub></td><td>mmHg</td><td>Pressioni parziali di O<sub>2</sub> pre-ML e post-ML.</td></tr>
+      <tr><td>F<sub>d</sub>O<sub>2</sub></td><td>0–1</td><td>Frazione di O<sub>2</sub> nel gas di sweep inviato al ML (Badulak 2024; non F<sub>s</sub>O<sub>2</sub>).</td></tr>
+      <tr><td>Hb</td><td>g/dL</td><td>Emoglobina, serve solo per V̇O<sub>2ML</sub>.</td></tr>
+      <tr><td>V̇O<sub>2ML</sub></td><td>mL/min</td><td>O<sub>2</sub> trasferito dal ML = Q<sub>b</sub> × 10 × [1,34 × Hb × (S<sub>post</sub>O<sub>2</sub> − S<sub>pre</sub>O<sub>2</sub>)/100 + 0,003 × (P<sub>post</sub>O<sub>2</sub> − P<sub>pre</sub>O<sub>2</sub>)]. Il termine disciolto entra solo se le P sono inserite.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Note e limiti</h2>
+  <ul class="notes">
+    <li>Il metodo regge solo con SvO<sub>2</sub> attendibile: la curva sullo schermo mostra quanto cambia R se SvO<sub>2</sub> sbaglia di pochi punti. Abbassare SvO<sub>2</sub> fa salire R, alzarla lo fa scendere.</li>
+    <li>Le saturazioni ignorano l'O<sub>2</sub> disciolto. Post-ML, con P<sub>post</sub>O<sub>2</sub> intorno a 400–500 mmHg, vale ~1,2–1,5 mL/dL: la formula a saturazioni tende a sovrastimare R rispetto a quella a contenuti (Xie 2016: i contenuti sono forse più accurati, evidenza limitata).</li>
+    <li>R ≥ 10% è la soglia di ricircolo "clinicamente rilevante" usata da Behnel 2026 con diluizione a ultrasuoni; non è un cut-off validato per il metodo a saturazioni.</li>
+    <li>Q<sub>b</sub>/GC > 60% si associava sempre a SaO<sub>2</sub> > 90% in VV femoro-giugulare (Schmidt 2013). Il dato è su Q<sub>b</sub> totale, non su Q<sub>eff</sub>.</li>
+    <li>Controllo rapido di Locker 2003: P<sub>pre</sub>O<sub>2</sub> in range venoso fisiologico (25–54 mmHg nella loro casistica) e &lt; 10% di P<sub>post</sub>O<sub>2</sub> esclude un ricircolo clinicamente rilevante. Non quantifica R ed è grossolano: con P<sub>pre</sub>O<sub>2</sub> 40 e P<sub>post</sub>O<sub>2</sub> 480 mmHg è soddisfatto anche quando il metodo a saturazioni dà R intorno al 30–40%.</li>
+    <li>Riferimento per la misura diretta: diluizione a ultrasuoni (Palmér 2016, Fisser 2022) e termodiluizione attraverso il circuito (Cipulli 2022, Berger 2024, Busana 2026).</li>
+  </ul>
+  <p class="sub" style="font-size:13px;margin-top:14px">Fonti: Badulak J et al. Intensive Care Med 2024, doi:10.1007/s00134-024-07645-8 · Xie A et al. J Crit Care 2016, doi:10.1016/j.jcrc.2016.05.027 · van Heijst AF et al. ASAIO J 2001, doi:10.1097/00002480-200107000-00015 · Locker GJ et al. J Clin Anesth 2003, doi:10.1016/s0952-8180(03)00108-9 · Schmidt M et al. Intensive Care Med 2013, doi:10.1007/s00134-012-2785-8 · Palmér O et al. ASAIO J 2016, doi:10.1097/MAT.0000000000000440 · Fisser C et al. Front Med 2022, doi:10.3389/fmed.2022.973240 · Behnel et al. ASAIO J 2026, doi:10.1097/MAT.0000000000002796 · Cipulli F et al. ASAIO J 2022, doi:10.1097/MAT.0000000000001428 · Berger D et al. Anesthesiology 2024, doi:10.1097/ALN.0000000000004895 · Busana M et al. Anesthesiology 2026, doi:10.1097/ALN.0000000000006032</p>
+</div>
+
+<script>
+{
+const DEF={qb:4.5,spre:72,spost:100,sv:65,gc:6,useGc:false,hb:10,src:'pre',srcTxt:'',ppre:'',ppost:''};
+const P=[
+  {id:'qb',lab:'Q<sub>b</sub>',u:'L/min',min:0.5,max:8,step:0.1,dec:1},
+  {id:'spre',lab:'S<sub>pre</sub>O<sub>2</sub>',u:'%',min:30,max:100,step:0.5,dec:1},
+  {id:'spost',lab:'S<sub>post</sub>O<sub>2</sub>',u:'%',min:60,max:100,step:0.5,dec:1},
+  {id:'sv',lab:'SvO<sub>2</sub>',u:'%',min:20,max:95,step:0.5,dec:1},
+  {id:'hb',lab:'Hb',u:'g/dL',min:5,max:18,step:0.1,dec:1},
+  {id:'gc',lab:'GC',u:'L/min',min:1,max:15,step:0.1,dec:1,opt:true}
+];
+const SRC={
+  pre:{t:'EGA venoso centrale prima dell\'avvio del flusso',n:'Dato reale, ma fotografa il paziente prima dell\'ECMO, più ipossiemico: SvO<sub>2</sub> tende a essere più bassa di quella attuale e R viene sovrastimato. Un prelievo in VCS non rappresenta il sangue della VCI.',b:'R tende a essere sovrastimato'},
+  sweep:{t:'Sweep spento, sensore pre-ML della console dopo alcuni minuti',n:'Solo se clinicamente sicuro. A sweep spento S<sub>pre</sub>O<sub>2</sub> = SvO<sub>2</sub>, perché il sangue che ricircola non è ossigenato. Durante la manovra però SaO<sub>2</sub> scende e SvO<sub>2</sub> con lei: il valore letto è più basso di quello a sweep acceso e R viene sovrastimato. Leggere al plateau.',b:'R tende a essere sovrastimato'},
+  cvc:{t:'CVC con flusso ECMO attivo',n:'Il prelievo è contaminato dal rientro: SvO<sub>2</sub> risulta più alta del vero e R viene sottostimato. Negli agnelli la stima da CVC in VCI si discostava di ~16 punti dal riferimento (van Heijst 2001).',b:'R tende a essere sottostimato'},
+  oth:{t:'Altro (specificare nel dettaglio)',n:'Indica nel dettaglio da dove viene il valore.',b:'direzione dell\'errore non nota'}
+};
+const st=Object.assign({},DEF);
+try{const s=JSON.parse(localStorage.getItem('ricircoloVV')||'null');if(s)Object.assign(st,s)}catch(e){}
+const $=id=>document.getElementById(id);
+const fmt=(x,d)=>isFinite(x)?x.toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d}):'–';
+const num=v=>{const x=parseFloat(String(v).replace(',','.'));return isFinite(x)?x:NaN};
+
+$('rows').innerHTML=P.map(p=>`<div class="row">
+  <div class="rh"><label for="n_${p.id}">${p.lab}</label>
+  <span class="num">${p.opt?`<label class="chk"><input type="checkbox" id="c_${p.id}"> noto</label>`:''}<input type="number" id="n_${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" inputmode="decimal"><span class="u">${p.u}</span></span></div>
+  <input type="range" id="r_${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" aria-label="${p.lab.replace(/<[^>]+>/g,'')}">
+  ${p.opt?'<p class="hint">Facoltativa, per Q<sub>b</sub>/GC e Q<sub>eff</sub>/GC. Da eco: <a href="portata-vti-lvot.html">calcolatore VTI LVOT</a>. In VV la termodiluizione da catetere in AP sovrastima la portata (Russ 2022).</p>':''}
+</div>`).join('');
+$('src').innerHTML=Object.entries(SRC).map(([k,v])=>`<option value="${k}">${v.t}</option>`).join('');
+
+function sync(){
+  for(const p of P){$('r_'+p.id).value=st[p.id];if(document.activeElement!==$('n_'+p.id))$('n_'+p.id).value=(+st[p.id]).toFixed(p.dec)}
+  $('c_gc').checked=st.useGc;$('n_gc').disabled=$('r_gc').disabled=!st.useGc;
+  $('src').value=st.src;$('srcNote').innerHTML=SRC[st.src].n;
+  if(document.activeElement!==$('srcTxt'))$('srcTxt').value=st.srcTxt;
+  for(const k of ['ppre','ppost'])if(document.activeElement!==$('n_'+k))$('n_'+k).value=st[k];
+  calc();
+  try{localStorage.setItem('ricircoloVV',JSON.stringify(st))}catch(e){}
+}
+for(const p of P){
+  $('r_'+p.id).addEventListener('input',e=>{st[p.id]=+e.target.value;sync()});
+  $('n_'+p.id).addEventListener('input',e=>{const v=num(e.target.value);if(isFinite(v)&&v>0){st[p.id]=v;sync()}});
+  $('n_'+p.id).addEventListener('blur',sync);
+}
+for(const k of ['ppre','ppost']){
+  $('n_'+k).addEventListener('input',e=>{const v=num(e.target.value);st[k]=isFinite(v)&&v>0?v:'';sync()});
+  $('n_'+k).addEventListener('blur',sync);
+}
+document.querySelectorAll('input[type=number]').forEach(el=>el.addEventListener('wheel',e=>{if(document.activeElement===e.target)e.target.blur()},{passive:true}));
+$('c_gc').addEventListener('change',e=>{st.useGc=e.target.checked;sync()});
+$('src').addEventListener('change',e=>{st.src=e.target.value;sync()});
+$('srcTxt').addEventListener('input',e=>{st.srcTxt=e.target.value;sync()});
+$('reset').addEventListener('click',()=>{Object.assign(st,DEF);sync()});
+$('copy').addEventListener('click',async()=>{const t=$('sum').textContent;try{await navigator.clipboard.writeText(t);$('copy').textContent='Copiato'}catch(e){const r=document.createRange();r.selectNodeContents($('sum'));const s=getSelection();s.removeAllRanges();s.addRange(r);$('copy').textContent='Selezionato'}setTimeout(()=>$('copy').textContent='Copia',1500)});
+
+const Rf=(a,b,v)=>(a-v)/(b-v);
+let last={};
+function calc(){
+  const {qb,spre,spost,sv,hb,gc}=st;
+  const errs=[];
+  if(spost<=spre)errs.push('S<sub>post</sub>O<sub>2</sub> deve essere maggiore di S<sub>pre</sub>O<sub>2</sub>: controllare ML, F<sub>d</sub>O<sub>2</sub> e sweep.');
+  if(spost<=sv)errs.push('S<sub>post</sub>O<sub>2</sub> deve essere maggiore di SvO<sub>2</sub>.');
+  let R=NaN;
+  if(!errs.length){
+    R=Rf(spre,spost,sv);
+    if(spre<sv){errs.push('S<sub>pre</sub>O<sub>2</sub> &lt; SvO<sub>2</sub>: R negativo è impossibile. SvO<sub>2</sub> probabilmente sovrastimata (contaminata dal rientro?). R posto a 0.');R=0}
+  }
+  $('err').innerHTML=errs.join('<br>');
+  const qr=qb*R, qe=qb*(1-R);
+  const lo=isFinite(R)?Math.max(0,Rf(spre,spost,Math.min(sv+5,spost-0.5))):NaN;
+  const hi=isFinite(R)?Rf(spre,spost,sv-5):NaN;
+  const dR=isFinite(R)?(spost-spre)/((spost-sv)**2)*100:NaN;
+  const pp=num(st.ppre), po=num(st.ppost), hasP=isFinite(pp)&&isFinite(po);
+  const vo2=qb*10*(1.34*hb*(spost-spre)/100+(hasP?0.003*(po-pp):0));
+
+  const relevant=R>=0.10;
+  $('oR').innerHTML=`${fmt(R*100,0)}<small>%</small>${isFinite(R)?(relevant?'<span class="flag lo">≥ 10%</span>':'<span class="flag ok">&lt; 10%</span>'):''}`;
+  $('oQe').innerHTML=`${fmt(qe,2)}<small>L/min</small>`;
+  $('oQr').innerHTML=`${fmt(qr,2)}<small>L/min</small>`;
+  const pe=isFinite(R)?(1-R)*100:0;
+  $('bE').style.width=pe+'%';$('bR').style.width=(isFinite(R)?R*100:0)+'%';
+  $('bE').textContent=pe>=18?fmt(pe,0)+'%':'';$('bR').textContent=R*100>=12?fmt(R*100,0)+'%':'';
+  $('lE').textContent=fmt(qe,2);$('lB').textContent=fmt(qb,1)+' L/min';$('lR').textContent=fmt(qr,2);
+
+  let lock='inserire P<sub>pre</sub>O<sub>2</sub> e P<sub>post</sub>O<sub>2</sub>', lockS='–';
+  if(hasP){const ratio=pp/po, ok=ratio<0.10&&pp<=54;lockS=`${fmt(ratio*100,1)}%`;
+    lock=ok?'<span class="okc">criterio soddisfatto: ricircolo clinicamente rilevante escluso</span>':`<span class="lo">criterio non soddisfatto</span>${pp>54?' (P<sub>pre</sub>O<sub>2</sub> &gt; 54 mmHg)':''}`}
+  const cls=(v,lo,hi)=>v<lo?'lo':v>hi?'':'okc';
+  const rows=[
+    ['Frazione di ricircolo (R)',`<span class="${relevant?'lo':'okc'}">${fmt(R*100,1)}%</span><span class="f">${fmt(R,3)}</span>`,'(S<sub>pre</sub>O<sub>2</sub> − SvO<sub>2</sub>) / (S<sub>post</sub>O<sub>2</sub> − SvO<sub>2</sub>); ≥ 10% rilevante (Behnel 2026)'],
+    ['R con SvO<sub>2</sub> ± 5 punti',`${fmt(lo*100,0)}–${fmt(hi*100,0)}%`,`SvO<sub>2</sub> ${fmt(Math.min(sv+5,spost-0.5),1)}% → ${fmt(Math.max(sv-5,0),1)}%; ~${fmt(dR,1)} punti di R per punto di SvO<sub>2</sub>`],
+    ['Flusso ricircolato (Q<sub>rec</sub>)',`${fmt(qr,2)} L/min`,'Q<sub>b</sub> × R'],
+    ['Flusso efficace (Q<sub>eff</sub>)',`${fmt(qe,2)} L/min`,'Q<sub>b</sub> × (1 − R)'],
+    ['O<sub>2</sub> trasferito dal ML (V̇O<sub>2ML</sub>)',`${fmt(vo2,0)} mL/min`,hasP?'saturazione + O<sub>2</sub> disciolto':'solo quota legata a Hb: inserire le P per il disciolto']
+  ];
+  if(st.useGc){
+    rows.push(['Q<sub>b</sub>/GC',`<span class="${cls(qb/gc*100,60,1e9)}">${fmt(qb/gc*100,0)}%</span>`,'> 60% associato a SaO<sub>2</sub> > 90% (Schmidt 2013)']);
+    rows.push(['Q<sub>eff</sub>/GC',`${fmt(qe/gc*100,0)}%`,'quota di GC che passa davvero dal ML']);
+  }
+  rows.push(['Locker: P<sub>pre</sub>O<sub>2</sub>/P<sub>post</sub>O<sub>2</sub>',lockS,lock]);
+  rows.push(['Fonte di SvO<sub>2</sub>',SRC[st.src].b,SRC[st.src].t+(st.srcTxt?` · ${st.srcTxt.replace(/[<>&]/g,'')}`:'')]);
+  $('tb').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td class="ref">${r[2]}</td></tr>`).join('');
+
+  const L=[
+    `Ricircolo VV-ECMO (metodo a saturazioni)`,
+    `Qb ${fmt(qb,1)} L/min · SpreO2 ${fmt(spre,1)}% · SpostO2 ${fmt(spost,1)}% · SvO2 ${fmt(sv,1)}%`,
+    `Fonte SvO2: ${SRC[st.src].t}${st.srcTxt?' ('+st.srcTxt+')':''}; ${SRC[st.src].b}`,
+    `R ${fmt(R*100,1)}% (SvO2 ±5: ${fmt(lo*100,0)}–${fmt(hi*100,0)}%)`,
+    `Qeff ${fmt(qe,2)} L/min · Qrec ${fmt(qr,2)} L/min`,
+    `VO2ML ${fmt(vo2,0)} mL/min (Hb ${fmt(hb,1)} g/dL${hasP?`, PpreO2 ${fmt(pp,0)}, PpostO2 ${fmt(po,0)} mmHg`:''})`
+  ];
+  if(st.useGc)L.push(`GC ${fmt(gc,1)} L/min · Qb/GC ${fmt(qb/gc*100,0)}% · Qeff/GC ${fmt(qe/gc*100,0)}%`);
+  if(hasP)L.push(`Locker: PpreO2/PpostO2 ${lockS}, ${pp/po<0.1&&pp<=54?'soddisfatto':'non soddisfatto'}`);
+  $('sum').textContent=L.join('\n');
+  last={R,lo,hi};draw();
+}
+
+const svg=$('crv');
+function draw(){
+  const W=svg.clientWidth,H=svg.clientHeight;if(!W||!H)return;
+  const {spre,spost,sv}=st;
+  const ml=W<420?34:40,mr=10,T=12,B=H-26;
+  const x0=20,x1=Math.max(spre,sv,x0+10);
+  const x=v=>ml+(v-x0)/(x1-x0)*(W-ml-mr), y=r=>B-Math.max(0,Math.min(1,r))*(B-T);
+  let g='';
+  for(let r=0;r<=1.001;r+=0.25){g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(r)}" y2="${y(r)}" stroke="${r?'#1d252b':'#6f7a82'}" ${r?'stroke-dasharray="2 4"':''}/><text x="${ml-6}" y="${y(r)+4}" fill="#7d868e" font-size="11" text-anchor="end">${r*100}%</text>`}
+  g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(0.1)}" y2="${y(0.1)}" stroke="#8a5a00" stroke-dasharray="4 3"/><text x="${W-mr}" y="${y(0.1)-4}" fill="#ffd38a" font-size="11" text-anchor="end">10%</text>`;
+  const step=Math.ceil((x1-x0)/5/5)*5||5;
+  for(let v=x0;v<=x1+1e-6;v+=step)g+=`<text x="${x(v)}" y="${B+16}" fill="#7d868e" font-size="11" text-anchor="middle">${v}</text>`;
+  g+=`<text x="${W-mr}" y="${B+16}" fill="#7d868e" font-size="11" text-anchor="end">SvO₂ %</text>`;
+  if(spost>spre&&spost>sv){
+    const a=Math.max(x0,sv-5),b=Math.min(x1,sv+5);
+    g+=`<rect x="${x(a)}" y="${T}" width="${Math.max(0,x(b)-x(a))}" height="${B-T}" fill="rgba(255,79,0,.12)"/>`;
+    let d='';const n=80,top=Math.min(spre,x1);
+    for(let i=0;i<=n;i++){const v=x0+(top-x0)*i/n;d+=(i?' L':'M')+x(v).toFixed(1)+','+y(Rf(spre,spost,v)).toFixed(1)}
+    g+=`<path d="${d}" fill="none" stroke="#dfe5e9" stroke-width="2"/>`;
+    if(isFinite(last.R))g+=`<line x1="${x(sv)}" x2="${x(sv)}" y1="${T}" y2="${B}" stroke="#ff4f00" stroke-width="1"/><circle cx="${x(Math.min(sv,x1))}" cy="${y(last.R)}" r="6" fill="#ff4f00" stroke="#07090b" stroke-width="2"/>`;
+  }
+  svg.innerHTML=g;
+}
+new ResizeObserver(draw).observe(svg);
+sync();
+}
+</script>
+</body>
+</html>
